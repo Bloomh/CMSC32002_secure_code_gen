@@ -21,16 +21,27 @@ def query_cwe_api(cwe_id):
         return None
 
 def query_llm(prompt, model_name="gpt-4o-mini"):
-    response = openai.chat.completions.create(
-        model=model_name,
-        messages=[
-            {"role": "system", "content": "You are an expert at writing secure, functionally robust code."},
-            {"role": "user", "content": prompt}
-        ],
-        response_format={"type": "json_object"},
-        temperature=0.6
-    )
-    return json.loads(response.choices[0].message.content)
+    for _ in range(3):
+        try:
+            response = openai.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": "You are an expert at writing secure, functionally robust code."},
+                    {"role": "user", "content": prompt}
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.6
+            )
+            return json.loads(response.choices[0].message.content)
+        except json.JSONDecodeError:
+            print(" *Error producing JSON, retrying query to the LLM*")
+        except:
+            print(" *Unexpected error, retrying query to the LLM*")
+            continue
+
+    # This should never be reached
+    print("Failed to query the LLM after 3 attempts.")
+    return None
 
 def generate_prompt(cwe_id, task_text, history, feed_history, allow_thoughts, allow_query):
     prompt = f"""You are tasked with completing the following code, ensuring both functionality and security. 
@@ -196,8 +207,9 @@ def gather_task_text(task_file_path):
     )
     return task_text
 
-def format_stats(cwe_id, attempt_number, compiles, functional, secure, func_secure):
+def format_stats(language, cwe_id, attempt_number, compiles, functional, secure, func_secure):
     return {
+        "lang": language,
         "cwe": cwe_id,
         "attempt": attempt_number + 1,
         "compiles": compiles,
@@ -206,7 +218,7 @@ def format_stats(cwe_id, attempt_number, compiles, functional, secure, func_secu
         "func_secure": func_secure,
     }
 
-def main_loop(task_filename, model_name="gpt-4o-mini", max_iters=3, generation_number=0, feed_history=True, allow_thoughts=True, allow_query=True):
+def main_loop(task_filename, model_name="gpt-4o-mini", max_iters=5, generation_number=0, feed_history=True, allow_thoughts=True, allow_query=True):
     # Parse the CWE id from the task filename
     task_file_name = task_filename.split("/")[-1]
     print(f"Processing task file {task_file_name}")
@@ -240,7 +252,7 @@ def main_loop(task_filename, model_name="gpt-4o-mini", max_iters=3, generation_n
             code = llm_response["code"]
             compiles, functional, secure, func_secure, message = evaluate_code(code, task_file_name, model_name, language, generation_number)
 
-            stats = format_stats(cwe_id, generation_attempts, compiles, functional, secure, func_secure)
+            stats = format_stats(language, cwe_id, generation_attempts, compiles, functional, secure, func_secure)
             generation_data.append(stats)
 
             if func_secure:
@@ -257,13 +269,16 @@ def main_loop(task_filename, model_name="gpt-4o-mini", max_iters=3, generation_n
     return generation_data, history
 
 def write_to_csv(data, filename):
+    os.makedirs("results", exist_ok=True)
     with open(filename, 'w', newline='') as csvfile:
-        fieldnames = ['cwe', 'attempt', 'compiles', 'functional', 'secure', 'func_secure']
+        fieldnames = ['lang', 'cwe', 'attempt', 'compiles', 'functional', 'secure', 'func_secure']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         
         writer.writeheader()
         for row in data:
             writer.writerow(row)
+    
+    print(f"Data has been written to {csv_filename}\n")
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
@@ -273,25 +288,30 @@ if __name__ == "__main__":
     task_filename = sys.argv[1]
     model_name = sys.argv[2]
 
-    all_data = []
 
     if "." not in task_filename:
-        lang = task_filename
-        lang_files_dir = f"benchmark/core/{lang}/"
-        for task_file in os.listdir(lang_files_dir):
-            if "task" in task_file:
-                # Skip CWE 329 due to import issues
-                if "cwe_329" in task_file:
-                    continue
+        langs = [task_filename] if task_filename != "all" else ["c", "cpp", "go", "py", "js"]
+        for lang in langs:
+            lang_data = []
 
-                task_path = os.path.join(lang_files_dir, task_file)
-                gen_data, _ = main_loop(task_path, model_name, max_iters=5)
-                all_data.extend(gen_data)
+            print("Processing all CWEs for language:", lang)
+            print("-"*100)
+
+            lang_files_dir = f"benchmark/core/{lang}/"
+            for _ in range(5): # How many times to run generation on all CWEs
+                for task_file in os.listdir(lang_files_dir):
+                    if "task" in task_file:
+                        # Skip CWE 329 due to import issues
+                        if "cwe_329" in task_file:
+                            continue
+
+                        task_path = os.path.join(lang_files_dir, task_file)
+                        gen_data, _ = main_loop(task_path, model_name, max_iters=5)
+                        lang_data.extend(gen_data)
+
+            csv_filename = f"results/{model_name}_{lang}.csv"
+            write_to_csv(lang_data, csv_filename)
     else:
         gen_data, _ = main_loop(task_filename, model_name)
-        all_data.extend(gen_data)
-
-    csv_filename = f"results/{model_name}_{task_filename}.csv"
-    write_to_csv(all_data, csv_filename)
-
-    print(f"Data has been written to {csv_filename}")
+        csv_filename = f"results/{model_name}_{task_filename}.csv"
+        write_to_csv(gen_data, csv_filename)
