@@ -151,7 +151,30 @@ def copy_task_files(source_dir, destination_dir):
             destination_path = os.path.join(destination_dir, filename)
             shutil.copy2(source_path, destination_path)
 
-def evaluate_code(code, task_filename, model_name, language, generation_number):
+def save_stdout_to_jsonl(stdout, task_file_name, cwe_id, language, model_name, attempt_number, generation_number, functional, secure):
+    """Save the evaluation stdout to a JSONL file immediately after evaluation."""
+    os.makedirs("stdout_logs", exist_ok=True)
+    
+    log_file = f"stdout_logs/{model_name}_stdout.jsonl"
+    
+    log_entry = {
+        "task_file": task_file_name,
+        "cwe_id": cwe_id,
+        "language": language,
+        "model": model_name,
+        "attempt": attempt_number + 1,
+        "generation": generation_number,
+        "stdout": stdout,
+        "functional": functional,
+        "secure": secure
+    }
+    
+    with open(log_file, 'a') as f:
+        f.write(json.dumps(log_entry) + '\n')
+    
+    print(f"\tStdout saved to {log_file}")
+
+def evaluate_code(code, task_filename, model_name, language, generation_number, attempt_number, cwe_id):
     # Returns tuple of (compiles, functional, secure, func-secure, message)
     temp_eval_root = "temp_evals/"
     temp_eval_dir_base = f"{temp_eval_root}eval_{model_name}"
@@ -164,15 +187,6 @@ def evaluate_code(code, task_filename, model_name, language, generation_number):
 
     eval_cmd = f"python cweval/evaluate.py pipeline --eval_path {temp_eval_dir_base} --num_proc 20 --docker False"
     
-    try:
-        eval_stdout = subprocess.check_output(eval_cmd, shell=True, stderr=subprocess.STDOUT, text=True) # TODO: pass this stdout back in?
-    except subprocess.CalledProcessError as e:
-        shutil.rmtree(temp_eval_root)
-        if "ModuleNotFoundError" in e.output:
-            module_name = e.output.split("No module named")[-1].split("'")[1]
-            return False, False, False, False, f"The code did not compile properly due to a ModuleNotFoundError: {module_name}"
-        print("UNEXPECTED ERROR:\n", e.output)
-        return False, False, False, False, "An unexpected error occurred and the code did not compile properly."
 
     eval_json_path = os.path.join(temp_eval_dir_base, "res_all.json")
     with open(eval_json_path, 'r') as eval_json_file:
@@ -182,6 +196,20 @@ def evaluate_code(code, task_filename, model_name, language, generation_number):
     functional, secure, func_secure = parse_eval_json(eval_json)
 
     message = code_results_to_message(functional, secure)
+
+    try:
+        eval_stdout = subprocess.check_output(eval_cmd, shell=True, stderr=subprocess.STDOUT, text=True) # TODO: pass this stdout back in?
+        save_stdout_to_jsonl(eval_stdout, task_filename, cwe_id, language, model_name, attempt_number, generation_number, functional, secure)
+
+
+
+    except subprocess.CalledProcessError as e:
+        shutil.rmtree(temp_eval_root)
+        if "ModuleNotFoundError" in e.output:
+            module_name = e.output.split("No module named")[-1].split("'")[1]
+            return False, False, False, False, f"The code did not compile properly due to a ModuleNotFoundError: {module_name}"
+        print("UNEXPECTED ERROR:\n", e.output)
+        return False, False, False, False, "An unexpected error occurred and the code did not compile properly."
 
     shutil.rmtree(temp_eval_root)
 
@@ -250,7 +278,15 @@ def main_loop(task_filename, model_name="gpt-4o-mini", max_iters=5, generation_n
                 history = add_response_to_history(history, f"No description found for CWE {cwe_id}", "system")
         else:
             code = llm_response["code"]
-            compiles, functional, secure, func_secure, message = evaluate_code(code, task_file_name, model_name, language, generation_number)
+            compiles, functional, secure, func_secure, message = evaluate_code(
+                code, 
+                task_file_name, 
+                model_name, 
+                language, 
+                generation_number, 
+                generation_attempts, 
+                cwe_id
+            )
 
             stats = format_stats(language, cwe_id, generation_attempts, compiles, functional, secure, func_secure)
             generation_data.append(stats)
