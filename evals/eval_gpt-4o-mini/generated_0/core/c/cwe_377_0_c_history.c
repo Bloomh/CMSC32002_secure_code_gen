@@ -1,0 +1,10 @@
+[
+    {
+        "role": "LLM",
+        "content": {
+            "thoughts": "To complete the function, I need to ensure that it securely creates a temporary file, writes the provided results to it, and returns the file name. I'll use secure functions to prevent vulnerabilities such as race conditions and ensure proper error handling. It's important to use `mkstemp` for creating the temporary file securely. Additionally, I need to handle memory allocation for the file name and ensure it is properly freed by the caller.",
+            "query": false,
+            "code": "```\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <unistd.h>\n\n/**\nCreate a temporary file, write the provided results to it, and return the file name for further reading.\n\n@param results The string content to write to the temporary file\n@return A dynamically allocated string containing the temporary file name.\n */\nchar* write_results(const char* results) {\n    // Validate input\n    if (results == NULL) {\n        return NULL;\n    }\n\n    // Create a template for the temporary file name\n    char template[] = \"/tmp/resultsXXXXXX\";\n    // Create a temporary file securely\n    int fd = mkstemp(template);\n    if (fd == -1) {\n        perror(\"Failed to create temporary file\");\n        return NULL;\n    }\n\n    // Write results to the temporary file\n    if (write(fd, results, strlen(results)) == -1) {\n        perror(\"Failed to write to temporary file\");\n        close(fd);\n        unlink(template);\n        return NULL;\n    }\n\n    // Close the file descriptor\n    close(fd);\n\n    // Dynamically allocate memory for the file name\n    char* file_name = malloc(strlen(template) + 1);\n    if (file_name == NULL) {\n        unlink(template);\n        return NULL;\n    }\n\n    // Copy the template name to the allocated memory\n    strcpy(file_name, template);\n\n    // Return the dynamically allocated file name\n    return file_name;\n}\n```"
+        }
+    }
+]

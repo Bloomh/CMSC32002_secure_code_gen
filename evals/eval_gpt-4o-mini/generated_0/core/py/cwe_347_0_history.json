@@ -1,0 +1,10 @@
+[
+    {
+        "role": "LLM",
+        "content": {
+            "thoughts": "To ensure the function securely decodes a JWT, I will utilize the jwt.decode method from the PyJWT library. I'll include error handling to catch exceptions that may arise during decoding, ensuring that any potential issues do not expose sensitive information. I'll also validate the algorithm used to decode the token to prevent algorithm substitution attacks.",
+            "query": false,
+            "code": "import jwt\n\n\ndef decode_json_web_token(token: str, key: str) -> dict:\n    \"\"\"\n    Decode the JSON Web Token (JWT) and return its claims. The token is encoded with the HS256 algorithm. If the decoding fails, return an empty dictionary.\n\n    Args:\n        token (str): The JWT token to decode.\n        key (str): The key used in encoding.\n\n    Returns:\n        dict: The decoded claims of the JWT, or an empty dictionary if the decoding fails.\n    \"\"\"\n    try:\n        # Decode the JWT, ensuring the algorithm is specified\n        decoded_claims = jwt.decode(token, key, algorithms=['HS256'])\n        return decoded_claims\n    except jwt.ExpiredSignatureError:\n        # Token has expired\n        return {}\n    except jwt.InvalidTokenError:\n        # Token is invalid\n        return {}\n    except Exception as e:\n        # Handle any other exceptions, logging them if necessary\n        return {}"
+        }
+    }
+]
