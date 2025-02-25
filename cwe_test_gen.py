@@ -154,7 +154,7 @@ def evaluate_code(code, task_filename, model_name, language, generation_number):
     eval_cmd = f"python cweval/evaluate.py pipeline --eval_path {temp_eval_dir_base} --num_proc 20 --docker False"
     
     try:
-        eval_stdout = subprocess.check_output(eval_cmd, shell=True, stderr=subprocess.STDOUT, text=True)
+        eval_stdout = subprocess.check_output(eval_cmd, shell=True, stderr=subprocess.STDOUT, text=True) # TODO: pass this stdout back in?
     except subprocess.CalledProcessError as e:
         shutil.rmtree(temp_eval_root)
         if "ModuleNotFoundError" in e.output:
@@ -199,7 +199,7 @@ def gather_task_text(task_file_path):
 def format_stats(cwe_id, attempt_number, compiles, functional, secure, func_secure):
     return {
         "cwe": cwe_id,
-        "attempt": attempt_number,
+        "attempt": attempt_number + 1,
         "compiles": compiles,
         "functional": functional,
         "secure": secure,
@@ -277,21 +277,21 @@ if __name__ == "__main__":
 
     if "." not in task_filename:
         lang = task_filename
-        py_files_dir = f"benchmark/core/{lang}/"
-        for task_file in os.listdir(py_files_dir):
+        lang_files_dir = f"benchmark/core/{lang}/"
+        for task_file in os.listdir(lang_files_dir):
             if "task" in task_file:
                 # Skip CWE 329 due to import issues
                 if "cwe_329" in task_file:
                     continue
 
-                task_path = os.path.join(py_files_dir, task_file)
-                gen_data, _ = main_loop(task_path, model_name)
+                task_path = os.path.join(lang_files_dir, task_file)
+                gen_data, _ = main_loop(task_path, model_name, max_iters=5)
                 all_data.extend(gen_data)
     else:
         gen_data, _ = main_loop(task_filename, model_name)
         all_data.extend(gen_data)
 
-    csv_filename = f"code_generation_results_{model_name}_{task_filename}.csv"
+    csv_filename = f"results/{model_name}_{task_filename}.csv"
     write_to_csv(all_data, csv_filename)
 
     print(f"Data has been written to {csv_filename}")

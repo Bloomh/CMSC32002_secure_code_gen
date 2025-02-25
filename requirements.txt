@@ -4,3 +4,4 @@ openai
 ipykernel
 pandas
 matplotlib
+numpy

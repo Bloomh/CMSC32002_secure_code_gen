@@ -6,7 +6,7 @@ Henry, Isha, and Justin
 ## Usage
 ### Setup
 
-1. Create a virtual environment
+1. Create a virtual environment (only needed once)
 ```
 python -m venv venv
 ```
@@ -21,7 +21,7 @@ pip install -r requirements.txt
 
 ### CWEval
 The main part of this code involves using CWEval. Please follow these instructions, largely from `https://github.com/Co1lin/CWEval`:
-1. Pull the docker image
+1. Pull the docker image (only needed once)
 ```bash
 docker pull --platform=linux/amd64 co1lin/cweval
 ```  
@@ -37,8 +37,8 @@ docker cp cwe_test_gen.py cweval:/home/ubuntu/CWEval
 ```bash
 source .env
 export OPENAI_API_KEY=<your key here>
-export GOARCH=amd64 # for mac
-export GOOS=linux # for mac
+export GOARCH=amd64
+export GOOS=linux
 ```
 5. Run the script
 ```bash
@@ -46,6 +46,6 @@ python cwe_test_gen.py "<lang>" "<model_name>"
 ```
 6. Save the csv results to a local file
 ```bash
-docker cp cweval:/home/ubuntu/CWEval/code_generation_results_{model_name}_{lang}.csv .
+docker cp cweval:/home/ubuntu/CWEval/results/{model_name}_{lang}.csv .
 ```
 7. Run the stats notebook locally in `stat_evaluation.ipynb`
