@@ -174,8 +174,8 @@ def save_stdout_to_jsonl(stdout, task_file_name, cwe_id, language, model_name, a
     
     print(f"\tStdout saved to {log_file}")
 
-def evaluate_code(code, task_filename, model_name, language, generation_number, attempt_number, cwe_id):
-    # Returns tuple of (compiles, functional, secure, func-secure, message)
+def evaluate_code(code, task_filename, model_name, language, generation_number):
+    # Returns tuple of (compiles, functional, secure, func-secure, message, eval_stdout)
     temp_eval_root = "temp_evals/"
     temp_eval_dir_base = f"{temp_eval_root}eval_{model_name}"
     temp_eval_dir = f"{temp_eval_dir_base}/generated_{generation_number}/core/{language}"
@@ -187,6 +187,17 @@ def evaluate_code(code, task_filename, model_name, language, generation_number, 
 
     eval_cmd = f"python cweval/evaluate.py pipeline --eval_path {temp_eval_dir_base} --num_proc 20 --docker False"
     
+    try:
+        eval_stdout = subprocess.check_output(eval_cmd, shell=True, stderr=subprocess.STDOUT, text=True)
+
+
+    except subprocess.CalledProcessError as e:
+        shutil.rmtree(temp_eval_root)
+        if "ModuleNotFoundError" in e.output:
+            module_name = e.output.split("No module named")[-1].split("'")[1]
+            return False, False, False, False, f"The code did not compile properly due to a ModuleNotFoundError: {module_name}", e.output
+        print("UNEXPECTED ERROR:\n", e.output)
+        return False, False, False, False, "An unexpected error occurred and the code did not compile properly.", e.output
 
     eval_json_path = os.path.join(temp_eval_dir_base, "res_all.json")
     with open(eval_json_path, 'r') as eval_json_file:
@@ -197,23 +208,10 @@ def evaluate_code(code, task_filename, model_name, language, generation_number, 
 
     message = code_results_to_message(functional, secure)
 
-    try:
-        eval_stdout = subprocess.check_output(eval_cmd, shell=True, stderr=subprocess.STDOUT, text=True) # TODO: pass this stdout back in?
-        save_stdout_to_jsonl(eval_stdout, task_filename, cwe_id, language, model_name, attempt_number, generation_number, functional, secure)
-
-
-
-    except subprocess.CalledProcessError as e:
-        shutil.rmtree(temp_eval_root)
-        if "ModuleNotFoundError" in e.output:
-            module_name = e.output.split("No module named")[-1].split("'")[1]
-            return False, False, False, False, f"The code did not compile properly due to a ModuleNotFoundError: {module_name}"
-        print("UNEXPECTED ERROR:\n", e.output)
-        return False, False, False, False, "An unexpected error occurred and the code did not compile properly."
-
     shutil.rmtree(temp_eval_root)
 
-    return compiles, functional, secure, func_secure, message
+    # Return the eval_stdout as the 6th item in the tuple
+    return compiles, functional, secure, func_secure, message, eval_stdout
 
 def gather_task_text(task_file_path):
     begin_prompt_anchor = 'BEGIN PROMPT'
@@ -246,6 +244,22 @@ def format_stats(language, cwe_id, attempt_number, compiles, functional, secure,
         "func_secure": func_secure,
     }
 
+def get_test_case_content(task_filename, model_name, language, generation_number):
+    """Read the content of the test file corresponding to the task file."""
+    # Construct the path to the test file
+    test_filename = task_filename.replace("task", "test")
+    test_file_path = f"benchmark/core/{language}/{test_filename}"
+    
+    # Check if the test file exists and read its content
+    if os.path.exists(test_file_path):
+        try:
+            with open(test_file_path, 'r') as test_file:
+                return test_file.read()
+        except Exception as e:
+            return f"Error reading test file: {str(e)}"
+    else:
+        return f"Test file not found at path: {test_file_path}"
+    
 def main_loop(task_filename, model_name="gpt-4o-mini", max_iters=5, generation_number=0, feed_history=True, allow_thoughts=True, allow_query=True):
     # Parse the CWE id from the task filename
     task_file_name = task_filename.split("/")[-1]
@@ -262,6 +276,7 @@ def main_loop(task_filename, model_name="gpt-4o-mini", max_iters=5, generation_n
 
     generation_attempts = 0
     generation_data = []
+    test_case_content = get_test_case_content(task_file_name, model_name, language, generation_number)
 
     while generation_attempts < max_iters:
         prompt = generate_prompt(cwe_id, task_text, history, feed_history, allow_thoughts, allow_query)
@@ -278,15 +293,7 @@ def main_loop(task_filename, model_name="gpt-4o-mini", max_iters=5, generation_n
                 history = add_response_to_history(history, f"No description found for CWE {cwe_id}", "system")
         else:
             code = llm_response["code"]
-            compiles, functional, secure, func_secure, message = evaluate_code(
-                code, 
-                task_file_name, 
-                model_name, 
-                language, 
-                generation_number, 
-                generation_attempts, 
-                cwe_id
-            )
+            compiles, functional, secure, func_secure, message, eval_stdout = evaluate_code(code, task_file_name, model_name, language, generation_number)
 
             stats = format_stats(language, cwe_id, generation_attempts, compiles, functional, secure, func_secure)
             generation_data.append(stats)
@@ -296,7 +303,24 @@ def main_loop(task_filename, model_name="gpt-4o-mini", max_iters=5, generation_n
                 break
             else:
                 print(f"\t{message}")
+                # Add the basic message to history
                 history = add_response_to_history(history, message, "system")
+                
+                # If code isn't functional or secure, add the evaluation output to history
+                eval_stdout = eval_stdout.split("=================================== FAILURES ===================================")[1].split("=============================== warnings summary ===============================")[0]
+
+                error_feedback = "Error details:\n" + eval_stdout + "\n"
+                history = add_response_to_history(history, error_feedback, "system")
+
+                # Add test case content if it's the first failure
+                if generation_attempts == 0 and test_case_content:
+                    test_case_message = "Here are the test cases used to evaluate your code:\n```\n" + test_case_content + "\n```\nPlease fix your code based on these test cases and error details."
+                    history = add_response_to_history(history, test_case_message, "system")
+                    print(f"\tTest cases provided to help debug the code.")
+                # For subsequent failures, remind about test cases
+                elif test_case_content:
+                    reminder = "Remember to ensure your code passes the test cases provided earlier."
+                    history = add_response_to_history(history, reminder, "system")
             
             generation_attempts += 1
     
