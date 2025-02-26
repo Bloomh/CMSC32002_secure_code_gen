@@ -477,7 +477,7 @@ if __name__ == "__main__":
 
             lang_files_dir = f"benchmark/core/{lang}/"
             for iter_num in range(num_iters): # How many times to run generation on all CWEs
-                for task_file in os.listdir(lang_files_dir)[:4]:
+                for task_file in os.listdir(lang_files_dir):
                     if "task" in task_file:
                         # Skip CWE 329 due to import issues
                         if "cwe_329" in task_file:
