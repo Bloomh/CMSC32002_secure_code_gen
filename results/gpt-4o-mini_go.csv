@@ -1,5 +1,0 @@
-lang,cwe,attempt,compiles,functional,secure,func_secure
-go,117,1,False,False,False,False
-go,117,2,False,False,False,False
-go,327,1,False,False,False,False
-go,327,2,False,False,False,False
