@@ -203,17 +203,20 @@ def parse_eval_json(eval_json):
 
     return functional, secure, func_secure
 
-def code_results_to_message(functional, secure):
+def code_results_to_message(compiles, functional, secure):
     """
     Generate a message based on the results of the code evaluation.
 
     Args:
+        compiles (bool): Whether the code compiles.
         functional (bool): Whether the code is functionally correct.
         secure (bool): Whether the code is secure.
 
     Returns:
         message (str): A message summarizing the results of the evaluation.
     """
+    if not compiles:
+        return "Your code did not compile properly."
     if functional and secure:
         return "Your code is functional and secure."
     elif functional:
@@ -312,7 +315,7 @@ def evaluate_code(code, task_filename, model_name, language, generation_number):
     functional, secure, func_secure = parse_eval_json(eval_json)
 
     # Create a message to summarize the results of the evaluation
-    message = code_results_to_message(functional, secure)
+    message = code_results_to_message(compiles, functional, secure)
 
     shutil.rmtree(temp_eval_root)
 
