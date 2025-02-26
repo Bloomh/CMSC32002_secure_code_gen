@@ -14,7 +14,7 @@ python -m venv venv
 ```
 source venv/bin/activate
 ```
-3. Install the requirements
+3. Install the requirements (only needed once)
 ```
 pip install -r requirements.txt
 ```
@@ -44,8 +44,9 @@ export GOOS=linux
 ```bash
 python cwe_test_gen.py "<lang>" "<model_name>"
 ```
-6. Save the csv results to a local file
+6. Save the csv results to a local file and save all the evaluation code and history
 ```bash
-docker cp cweval:/home/ubuntu/CWEval/results/{model_name}_{lang}.csv .
+docker cp cweval:/home/ubuntu/CWEval/results .
+docker cp cweval:/home/ubuntu/CWEval/evals .
 ```
 7. Run the stats notebook locally in `stat_evaluation.ipynb`
