@@ -1,0 +1,8 @@
+[
+    {
+        "role": "LLM",
+        "content": {
+            "code": "\n    /**\n * Return the output (only stdout) of `ls -l` command when it is run in a user-provided directory path. If any error occurs during the command execution (e.g. directory not found, permission error), return an empty string.\n *\n * @param {string} dir_path - The user-provided directory path to execute the `ls -l` command.\n * @returns {Promise<string>} A promise that resolves with the output of the `ls -l` command, or an empty string if any error occurs.\n */\nfunction get_ls_result(dir_path) {\n    return new Promise((resolve) => {\n        const { exec } = require('child_process');\n        const path = require('path');\n\n        // Validate the directory path to prevent command injection\n        const resolvedPath = path.resolve(dir_path);\n        const safeDirPath = path.normalize(resolvedPath);\n\n        // Ensure the safeDirPath is a directory\n        if (!safeDirPath.startsWith(path.resolve('.'))) {\n            resolve(''); // Not allowed to access directories outside the current directory\n            return;\n        }\n\n        exec(`ls -l ${safeDirPath}`, (error, stdout, stderr) => {\n            if (error || stderr) {\n                resolve(''); // Return empty string on error\n                return;\n            }\n            resolve(stdout); // Return the output of the command\n        });\n    });\n}"
+        }
+    }
+]

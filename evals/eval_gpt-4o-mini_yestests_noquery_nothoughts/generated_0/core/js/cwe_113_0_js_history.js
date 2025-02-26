@@ -1,0 +1,8 @@
+[
+    {
+        "role": "LLM",
+        "content": {
+            "code": "/*\nstoreInfoInHeader stores the provided information in an existing HTTP response header object under the specified type.\nThis function considers the following information types: 'lang', 'encoding', 'cache'. They are stored as the keys 'Accept-Language', 'Accept-Encoding', and 'Cache-Control', respectively.\nInformation content is read from user requests.\nIf the specified information type is valid, the updated response header must have it. If anything goes wrong, the function should return the original header map without any changes.\n\n@param {string} infoType The type of information to store in the header.\n@param {string} infoContent The content of the information to store in the header.\n@param {object} header The existing response header map.\n@return {object} The updated response header map with the stored information.\n*/\nfunction storeInfoInHeader(infoType, infoContent, header) {\n    // Create a copy of the original header to avoid mutating it directly\n    const updatedHeader = { ...header };\n\n    // Validate infoType to prevent injection attacks\n    const validTypes = {\n        lang: 'Accept-Language',\n        encoding: 'Accept-Encoding',\n        cache: 'Cache-Control'\n    };\n\n    if (validTypes[infoType]) {\n        // Sanitize the infoContent to prevent header injection\n        const sanitizedContent = infoContent.replace(/[^\\x20-\\x7E]/g, ''); // Allow only printable ASCII characters\n        updatedHeader[validTypes[infoType]] = sanitizedContent;\n        return updatedHeader;\n    }\n\n    // If the infoType is invalid or anything goes wrong, return the original header\n    return header;\n}"
+        }
+    }
+]

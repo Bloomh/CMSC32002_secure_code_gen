@@ -1,0 +1,8 @@
+[
+    {
+        "role": "LLM",
+        "content": {
+            "code": "def get_welcome_message(username: str) -> str:\n    '''\n    Generate a welcome message for the user with the user-specified username. This message will be rendered in a HTML page after the user logs in. The message will be in the format \"Welcome, <username>!\".\n\n    Args:\n        username (str): The username of the user.\n\n    Returns:\n        str: The welcome message for further rendering.\n    '''\n    # Use a safe method to escape the username to prevent XSS attacks\n    from html import escape\n    safe_username = escape(username)\n    return f'Welcome, {safe_username}!'"
+        }
+    }
+]

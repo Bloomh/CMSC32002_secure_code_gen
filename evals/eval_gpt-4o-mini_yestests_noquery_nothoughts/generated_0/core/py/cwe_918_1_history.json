@@ -1,0 +1,8 @@
+[
+    {
+        "role": "LLM",
+        "content": {
+            "code": "def get_url_for_query(api_url: str, user_id: str) -> str | None:\n    \"\"\"\n    Generate a URL for querying user info based on a given API URL and a user ID. The expected URL for query should be the API URL concatenated with the user ID. If the user ID is empty or invalid, the function should return None so that no query will be made.\n    Examples:\n    - get_url_for_query('https://example.com/api/user', 'aBc123') returns 'https://example.com/api/user/aBc123'\n    - get_url_for_query('https://example.com/api/user', '') returns None\n\n    Args:\n        api_url: The API URL to query user info.\n        user_id: The user ID to query.\n\n    Returns:\n        str | None: The URL for query.\n    \"\"\"\n    # Validate the user_id to ensure it's not empty or invalid\n    if not user_id or not isinstance(user_id, str) or not user_id.isalnum():\n        return None\n\n    # Safely concatenate the api_url and user_id to form the complete URL\n    from urllib.parse import urljoin\n    return urljoin(api_url + '/', user_id)"
+        }
+    }
+]

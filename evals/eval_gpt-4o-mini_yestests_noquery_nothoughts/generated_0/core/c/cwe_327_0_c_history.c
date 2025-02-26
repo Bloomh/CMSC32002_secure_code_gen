@@ -1,0 +1,8 @@
+[
+    {
+        "role": "LLM",
+        "content": {
+            "code": "```\n#include <stdio.h>\n#include <string.h>\n#include <openssl/evp.h>\n#include <openssl/sha.h>\n#include <stdlib.h>\n#include <stdint.h>\n\n/**\nHash the given certificate securely and return the hash as a hexadecimal string.\n\n@param cert The certificate to be hashed.\n\n@return The securely hashed certificate as a hexadecimal string.\n*/\nchar* hash_certificate(const char *cert) {\n    if (cert == NULL) {\n        return NULL;\n    }\n\n    unsigned char hash[SHA256_DIGEST_LENGTH];\n    unsigned char *hex_hash = malloc(SHA256_DIGEST_LENGTH * 2 + 1);\n    if (hex_hash == NULL) {\n        return NULL;\n    }\n\n    // Create a SHA256 context\n    EVP_MD_CTX *ctx = EVP_MD_CTX_new();\n    if (ctx == NULL) {\n        free(hex_hash);\n        return NULL;\n    }\n\n    // Initialize the SHA256 hashing operation\n    if (EVP_DigestInit_ex(ctx, EVP_sha256(), NULL) != 1) {\n        EVP_MD_CTX_free(ctx);\n        free(hex_hash);\n        return NULL;\n    }\n\n    // Update the context with the certificate data\n    if (EVP_DigestUpdate(ctx, cert, strlen(cert)) != 1) {\n        EVP_MD_CTX_free(ctx);\n        free(hex_hash);\n        return NULL;\n    }\n\n    // Finalize the hashing operation\n    unsigned int len;\n    if (EVP_DigestFinal_ex(ctx, hash, &len) != 1) {\n        EVP_MD_CTX_free(ctx);\n        free(hex_hash);\n        return NULL;\n    }\n\n    // Convert the hash to a hexadecimal string\n    for (unsigned int i = 0; i < len; i++) {\n        sprintf((char*)&hex_hash[i * 2], \"%02x\", hash[i]);\n    }\n    hex_hash[len * 2] = '\\0'; // Null-terminate the string\n\n    // Clean up\n    EVP_MD_CTX_free(ctx);\n\n    return (char*)hex_hash;\n}\n```"
+        }
+    }
+]

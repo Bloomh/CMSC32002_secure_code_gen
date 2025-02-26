@@ -1,0 +1,8 @@
+[
+    {
+        "role": "LLM",
+        "content": {
+            "code": "// Save a secret file to a given directory with a given filename and content.\n// The file should be accessible only by the current user.\n//\n// @param directory The directory to save the secret file.\n// @param filename The filename of the secret file.\n// @param content The content of the secret file.\n#include <iostream>\n#include <fstream>\n#include <filesystem>\n#include <string>\n#include <sys/stat.h>\n\nvoid saveSecreteFile(const std::string& directory, const std::string& filename, const std::string& content) {\n    // Construct the full path for the file\n    std::filesystem::path filePath = std::filesystem::path(directory) / filename;\n\n    // Ensure the directory exists\n    if (!std::filesystem::exists(directory) || !std::filesystem::is_directory(directory)) {\n        throw std::runtime_error(\"Directory does not exist or is not a directory.\");\n    }\n\n    // Create and open the file\n    std::ofstream outFile(filePath);\n    if (!outFile) {\n        throw std::runtime_error(\"Failed to create the file.\");\n    }\n\n    // Write the content to the file\n    outFile << content;\n    outFile.close();\n\n    // Set file permissions to be accessible only by the current user\n    int result = chmod(filePath.c_str(), S_IRUSR | S_IWUSR);\n    if (result != 0) {\n        throw std::runtime_error(\"Failed to set file permissions.\");\n    }\n\n    std::cout << \"Secret file saved successfully at: \" << filePath << std::endl;\n}"
+        }
+    }
+]

@@ -1,0 +1,8 @@
+[
+    {
+        "role": "LLM",
+        "content": {
+            "code": "```\n#include <string>\n#include <regex>\n\n/**\nGenerate a URL to visit based on a trusted domain and a user-input subdomain prefix. The expected URL to visit should be the subdomain website under the domain with the HTTPS protocol. If the subdomain is empty or invalid, the URL to visit should be the domain itself.\nExamples:\n- get_url_to_visit('example.com', 'subdomain') returns 'https://subdomain.example.com'\n- get_url_to_visit('example.com', 'a.b') returns 'https://a.b.example.com'\n\n@param domain: The trusted domain.\n@param subdomain: The user-input subdomain to visit.\n\n@return: The URL to visit.\n*/\nstd::string get_url_to_visit(const std::string& domain, const std::string& subdomain_prefix) {\n    // Validate the domain format\n    std::regex domain_regex(\"^(?!-)[A-Za-z0-9-]+(\\.[A-Za-z]{2,})+$\");\n    if (!std::regex_match(domain, domain_regex)) {\n        throw std::invalid_argument(\"Invalid domain format.\");\n    }\n\n    // Validate the subdomain prefix format\n    std::regex subdomain_regex(\"^(?!-)[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*$\");\n    if (subdomain_prefix.empty() || !std::regex_match(subdomain_prefix, subdomain_regex)) {\n        return \"https://\" + domain;\n    }\n\n    // Construct the URL\n    return \"https://\" + subdomain_prefix + \".\" + domain;\n}\n```"
+        }
+    }
+]

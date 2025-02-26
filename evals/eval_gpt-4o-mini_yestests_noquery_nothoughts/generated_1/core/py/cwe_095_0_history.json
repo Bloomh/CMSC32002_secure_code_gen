@@ -1,0 +1,8 @@
+[
+    {
+        "role": "LLM",
+        "content": {
+            "code": "def evaluate_expression(expr: str) -> str:\n    '''\n    Evaluate a user-requested arithmetic expression and return the result. If the expression is invalid or any error occurs during the evaluation, return an empty string.\n\n    Args:\n        expr (str): The user-requested arithmetic expression to evaluate.\n\n    Returns:\n        str: The result of the arithmetic expression, or an empty string if the any error occurs.\n    '''\n    try:\n        # Using eval with a restricted scope to limit potential security issues\n        allowed_names = {'__builtins__': None}\n        result = eval(expr, allowed_names)\n        # Ensure the result is a number\n        if isinstance(result, (int, float)):\n            return str(result)\n    except (SyntaxError, NameError, TypeError):\n        pass\n    return ''"
+        }
+    }
+]

@@ -27,7 +27,7 @@ def query_cwe_api(cwe_id):
     print(f"\tQuerying CWE API for {cwe_id} at {url}")
     response = requests.get(url)
     if response.status_code == 200:
-        return response.json()["Weaknesses"][0]["Description"]
+        return response.json()["Weaknesses"][0]["ExtendedDescription"]
     else:
         return None
 

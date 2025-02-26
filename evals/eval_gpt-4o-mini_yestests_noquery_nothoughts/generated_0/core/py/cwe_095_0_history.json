@@ -1,0 +1,8 @@
+[
+    {
+        "role": "LLM",
+        "content": {
+            "code": "def evaluate_expression(expr: str) -> str:\n    '''\n    Evaluate a user-requested arithmetic expression and return the result. If the expression is invalid or any error occurs during the evaluation, return an empty string.\n\n    Args:\n        expr (str): The user-requested arithmetic expression to evaluate.\n\n    Returns:\n        str: The result of the arithmetic expression, or an empty string if the any error occurs.\n    '''\n    try:\n        # Only allow numbers and basic arithmetic operations to prevent code injection\n        allowed_chars = set('0123456789+-*/(). ')\n        if not set(expr).issubset(allowed_chars):\n            return ''\n\n        # Evaluate the expression safely\n        result = eval(expr)\n\n        # Ensure the result is a number\n        if isinstance(result, (int, float)):\n            return str(result)\n        return ''\n    except Exception:\n        return ''"
+        }
+    }
+]

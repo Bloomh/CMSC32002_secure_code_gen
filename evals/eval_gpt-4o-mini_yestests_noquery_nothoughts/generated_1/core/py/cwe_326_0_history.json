@@ -1,0 +1,8 @@
+[
+    {
+        "role": "LLM",
+        "content": {
+            "code": "from Crypto.PublicKey import RSA\n\n\ndef create_private_key() -> str:\n    \"\"\"\n    Generate a private RSA key, export it using the PEM format, and return it as a string.\n\n    Returns:\n        str: The RSA private key in PEM format.\n    \"\"\"\n    # Generate a new RSA key pair\n    key = RSA.generate(2048)\n    # Export the private key in PEM format\n    private_key_pem = key.export_key(format='PEM')\n    return private_key_pem.decode('utf-8')"
+        }
+    }
+]

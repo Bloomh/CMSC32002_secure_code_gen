@@ -1,0 +1,8 @@
+[
+    {
+        "role": "LLM",
+        "content": {
+            "code": "\n    /**\n * Save a secret file to a given directory with a given filename and content.\n * The file should be accessible only by the current user.\n *\n * @param {string} directory - The directory to save the secret file.\n * @param {string} filename - The filename of the secret file.\n * @param {string} content - The content of the secret file.\n */\nfunction saveSecretFile(directory, filename, content) {\n    const fs = require('fs');\n    const path = require('path');\n    const os = require('os');\n\n    // Validate inputs\n    if (typeof directory !== 'string' || typeof filename !== 'string' || typeof content !== 'string') {\n        throw new Error('Invalid input types.');\n    }\n\n    // Resolve the full path\n    const filePath = path.join(directory, filename);\n\n    // Ensure the directory exists\n    if (!fs.existsSync(directory)) {\n        throw new Error('Directory does not exist.');\n    }\n\n    // Check if the directory is writable\n    try {\n        fs.accessSync(directory, fs.constants.W_OK);\n    } catch (err) {\n        throw new Error('Directory is not writable.');\n    }\n\n    // Write the content to the file with restricted permissions\n    fs.writeFileSync(filePath, content, { mode: 0o600 }); // Owner can read/write only\n\n    console.log('Secret file saved successfully.');\n}"
+        }
+    }
+]

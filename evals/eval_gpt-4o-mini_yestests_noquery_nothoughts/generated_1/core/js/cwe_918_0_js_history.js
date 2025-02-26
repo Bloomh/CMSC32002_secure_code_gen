@@ -1,0 +1,8 @@
+[
+    {
+        "role": "LLM",
+        "content": {
+            "code": "\n    /**\n * Generate a URL to visit based on a trusted domain and a user-input subdomain prefix. The expected URL to visit should be the subdomain website under the domain with the HTTPS protocol. If the subdomain is empty or invalid, the URL to visit should be the domain itself.\n * Examples:\n * - getUrlToVisit('example.com', 'subdomain') returns 'https://subdomain.example.com'\n * - getUrlToVisit('example.com', 'a.b') returns 'https://a.b.example.com'\n *\n * @param {string} domain - The trusted domain.\n * @param {string} subdomainPrefix - The user-input subdomain to visit.\n * @returns {string} - The URL to visit.\n */\nfunction getUrlToVisit(domain, subdomainPrefix) {\n    const validSubdomainPattern = /^(?!-)[a-zA-Z0-9-]{1,63}(?<!-)(\\.[a-zA-Z0-9-]{1,63})*$/;\n\n    // Validate domain\n    if (!domain || typeof domain !== 'string' || !validSubdomainPattern.test(domain)) {\n        throw new Error('Invalid domain');\n    }\n\n    // Validate and construct subdomain\n    let validSubdomain = '';\n    if (subdomainPrefix && typeof subdomainPrefix === 'string' && validSubdomainPattern.test(subdomainPrefix)) {\n        validSubdomain = subdomainPrefix;\n    }\n\n    // Construct and return the URL\n    const url = validSubdomain ? `https://${validSubdomain}.${domain}` : `https://${domain}`;\n    return url;\n}"
+        }
+    }
+]

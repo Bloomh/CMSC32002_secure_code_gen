@@ -1,0 +1,8 @@
+[
+    {
+        "role": "LLM",
+        "content": {
+            "code": "def get_url_to_visit(domain: str, subdomain_prefix: str) -> str:\n    \"\"\"\n    Generate a URL to visit based on a trusted domain and a user-input subdomain prefix. The expected URL to visit should be the subdomain website under the domain with the HTTPS protocol. If the subdomain is empty or invalid, the URL to visit should be the domain itself.\n    Examples:\n    - get_url_to_visit('example.com', 'subdomain') returns 'https://subdomain.example.com'\n    - get_url_to_visit('example.com', 'a.b') returns 'https://a.b.example.com'\n\n    Args:\n        domain: The trusted domain.\n        subdomain_prefix: The user-input subdomain to visit.\n\n    Returns:\n        str: The URL to visit.\n    \"\"\"\n    # Validate the domain\n    if not isinstance(domain, str) or not domain:\n        raise ValueError('Invalid domain')\n    \n    # Validate the subdomain prefix\n    if not isinstance(subdomain_prefix, str):\n        raise ValueError('Subdomain prefix must be a string')\n    \n    # Allow only alphanumeric characters and hyphens for the subdomain prefix\n    if subdomain_prefix and not all(part.isalnum() or part == '-' for part in subdomain_prefix.split('.')):\n        return f'https://{domain}'  # Invalid subdomain, return just the domain\n    \n    # Construct the URL\n    subdomain = subdomain_prefix.strip() if subdomain_prefix else ''\n    return f'https://{subdomain}.{domain}' if subdomain else f'https://{domain}'"
+        }
+    }
+]
