@@ -42,7 +42,7 @@ export GOOS=linux
 ```
 5. Run the script
 ```bash
-python cwe_test_gen.py "<lang>" "<model_name>"
+python cwe_test_gen.py "<lang or 'all'>" "<model_name>"
 ```
 6. Save the csv results to a local file and save all the evaluation code and history
 ```bash
