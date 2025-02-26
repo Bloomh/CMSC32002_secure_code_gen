@@ -308,7 +308,7 @@ def evaluate_code(code, task_filename, model_name, language, generation_number):
     with open(eval_json_path, 'r') as eval_json_file:
         eval_json = json.load(eval_json_file)
 
-    compiles = True
+    compiles = "Error compiling" not in eval_stdout
     functional, secure, func_secure = parse_eval_json(eval_json)
 
     # Create a message to summarize the results of the evaluation
@@ -377,7 +377,7 @@ def get_test_case_content(task_filename, model_name, language, generation_number
     else:
         return f"Test file not found at path: {test_file_path}"
 
-def main_loop(task_filename, model_name="gpt-4o-mini", max_attempts=5, generation_number=0, feed_history=True, allow_thoughts=True, allow_query=True):
+def main_loop(task_filename, model_name="gpt-4o-mini", max_attempts=5, generation_number=0, feed_history=True, allow_thoughts=True, allow_query=True, feed_test_cases=False):
     """
     The main loop of the simulation. Attempts to generate secure code for the given task.
 
@@ -443,21 +443,28 @@ def main_loop(task_filename, model_name="gpt-4o-mini", max_attempts=5, generatio
                 # Add the basic message to history
                 history = add_response_to_history(history, message, "system")
 
-                # If code isn't functional or secure, add the evaluation output to history
-                eval_stdout = eval_stdout.split("=================================== FAILURES ===================================")[1].split("=============================== warnings summary ===============================")[0]
+                if feed_test_cases:
+                    # If code isn't functional or secure, add the evaluation output to history
+                    if compiles:
+                        eval_stdout = eval_stdout.split("=================================== FAILURES ===================================")[1].split("=============================== warnings summary ===============================")[0]
+                    else:
+                        if "Error compiling" in eval_stdout:
+                            eval_stdout = eval_stdout.split("Error compiling")[1].split("Start running tests in test_path")[0]
+                        else:
+                            eval_stdout = eval_stdout.split("==================================== ERRORS ====================================")[1].split("=========================== short test summary info ============================")[0]
 
-                error_feedback = "Error details:\n" + eval_stdout + "\n"
-                history = add_response_to_history(history, error_feedback, "system")
+                    error_feedback = "Error details:\n" + eval_stdout + "\n"
+                    history = add_response_to_history(history, error_feedback, "system")
 
-                # Add test case content if it's the first failure
-                if generation_attempts == 0 and test_case_content:
-                    test_case_message = "Here are the test cases used to evaluate your code:\n```\n" + test_case_content + "\n```\nPlease fix your code based on these test cases and error details."
-                    history = add_response_to_history(history, test_case_message, "system")
-                    print(f"\tTest cases provided to help debug the code.")
-                # For subsequent failures, remind about test cases
-                elif test_case_content:
-                    reminder = "Remember to ensure your code passes the test cases provided earlier."
-                    history = add_response_to_history(history, reminder, "system")
+                    # Add test case content if it's the first failure
+                    if generation_attempts == 0 and test_case_content:
+                        test_case_message = "Here are the test cases used to evaluate your code:\n```\n" + test_case_content + "\n```\nPlease fix your code based on these test cases and error details."
+                        history = add_response_to_history(history, test_case_message, "system")
+                        print(f"\t\tTest cases provided to help debug the code.")
+                    # For subsequent failures, remind about test cases
+                    elif test_case_content:
+                        reminder = "Remember to ensure your code passes the test cases provided earlier."
+                        history = add_response_to_history(history, reminder, "system")
 
             generation_attempts += 1
 
@@ -494,6 +501,7 @@ if __name__ == "__main__":
     parser.add_argument("--no-feed-history", action="store_false", dest="feed_history", help="Do not feed history of responses to the model (default: Feed history)")
     parser.add_argument("--no-thoughts", action="store_false", dest="allow_thoughts", help="Do not allow the model to provide thoughts (default: Allow thoughts)")
     parser.add_argument("--no-query", action="store_false", dest="allow_query", help="Do not allow the model to query the CWE API (default: Allow query)")
+    parser.add_argument("--feed-test-cases", action="store_true", help="Feed test cases to the model upon failure (default: Do not feed test cases)")
     args = parser.parse_args()
 
     # For all languages, run the generation process for all CWEs
@@ -520,7 +528,8 @@ if __name__ == "__main__":
                         generation_number=iter_num,
                         feed_history=args.feed_history,
                         allow_thoughts=args.allow_thoughts,
-                        allow_query=args.allow_query
+                        allow_query=args.allow_query,
+                        feed_test_cases=args.feed_test_cases
                     )
                     lang_data.extend(gen_data)
 

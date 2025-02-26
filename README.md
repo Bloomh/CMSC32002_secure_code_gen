@@ -40,9 +40,27 @@ export OPENAI_API_KEY=<your key here>
 export GOARCH=amd64
 export GOOS=linux
 ```
-5. Run the script
-```bash
-python cwe_test_gen.py "<lang or 'all'>" "<model_name>" "<num_iters>" # num_iters is optional and defaults to 1
+5. Run the script, `cwe_test_gen.py`
+```
+usage: cwe_test_gen.py [-h] [--num_iters NUM_ITERS] [--max_attempts MAX_ATTEMPTS] [--no-feed-history] [--no-thoughts] [--no-query] [--feed-test-cases]
+                       language model_name
+
+Run the CWE code generation simulation.
+
+positional arguments:
+  language              Programming language or 'all' to process all languages.
+  model_name            Name of the model to use.
+
+options:
+  -h, --help            show this help message and exit
+  --num_iters NUM_ITERS
+                        Number of iterations (default: 1).
+  --max_attempts MAX_ATTEMPTS
+                        Maximum number of attempts for code generation (default: 5).
+  --no-feed-history     Do not feed history of responses to the model (default: Feed history)
+  --no-thoughts         Do not allow the model to provide thoughts (default: Allow thoughts)
+  --no-query            Do not allow the model to query the CWE API (default: Allow query)
+  --feed-test-cases     Feed test cases to the model upon failure (default: Do not feed test cases)
 ```
 6. Save the csv results to a local file and save all the evaluation code and history
 ```bash
