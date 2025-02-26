@@ -1,0 +1,6 @@
+lang,cwe,attempt,compiles,functional,secure,func_secure
+cpp,400,1,True,True,False,False
+cpp,400,2,True,True,False,False
+cpp,22,1,False,False,False,False
+cpp,22,2,False,False,False,False
+cpp,1333,1,True,True,True,True

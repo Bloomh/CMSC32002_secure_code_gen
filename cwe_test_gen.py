@@ -367,7 +367,7 @@ def format_stats(language, cwe_id, attempt_number, compiles, functional, secure,
 def get_test_case_content(task_filename, model_name, language, generation_number):
     """Read the content of the test file corresponding to the task file."""
     # Construct the path to the test file
-    test_filename = task_filename.replace("task", "test")
+    test_filename = task_filename.replace("task", "test").replace(f".{language}", f".py") # All tests end in _test.py
     test_file_path = f"benchmark/core/{language}/{test_filename}"
 
     # Check if the test file exists and read its content
@@ -517,7 +517,7 @@ if __name__ == "__main__":
 
         lang_files_dir = f"benchmark/core/{lang}/"
         for iter_num in range(args.num_iters):  # How many times to run generation on all CWEs
-            for task_file in os.listdir(lang_files_dir):
+            for task_file in os.listdir(lang_files_dir)[-8:]:
                 if "task" in task_file:
                     # Skip CWE 329 due to import issues
                     if "cwe_329" in task_file:

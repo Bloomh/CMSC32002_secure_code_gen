@@ -1,0 +1,5 @@
+lang,cwe,attempt,compiles,functional,secure,func_secure
+js,79,1,True,True,True,True
+js,643,1,True,False,False,False
+js,643,2,True,False,False,False
+js,732,1,True,True,True,True

@@ -1,0 +1,6 @@
+lang,cwe,attempt,compiles,functional,secure,func_secure
+py,327,1,True,True,True,True
+py,326,1,True,False,False,False
+py,326,2,True,False,True,False
+py,20,1,True,True,False,False
+py,20,2,True,True,True,True
