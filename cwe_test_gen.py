@@ -6,6 +6,7 @@ import subprocess
 import sys
 import shutil
 import csv
+import argparse
 
 # Initialize OpenAI client
 openai.api_key = os.environ['OPENAI_API_KEY']
@@ -42,7 +43,7 @@ def query_llm(prompt, model_name="gpt-4o-mini"):
         response (dict): The response from the LLM.
     """
 
-    for _ in range(3):
+    for _ in range(3): # Attempt up to three times in case the model outputs malformed JSON (rare)
         try:
             response = openai.chat.completions.create(
                 model=model_name,
@@ -173,9 +174,11 @@ def save_final_code_and_history(task_file, code, history, model_name, language, 
     output_filename = os.path.join(eval_dir, task_file.replace("task", "raw"))
     history_filename = output_filename.replace("raw", "history").replace(".py", ".json")
 
+    # Save the final code
     with open(output_filename, 'w') as output_file:
         output_file.write(code)
 
+    # Save the prompting, feedback, and response history
     with open(history_filename, 'w') as history_file:
         json.dump(history, history_file, indent=4)
 
@@ -191,7 +194,6 @@ def parse_eval_json(eval_json):
         secure (bool): Whether the code is secure.
         func_secure (bool): Whether the code is both functionally correct and secure.
     """
-
     k = list(eval_json.keys())[0]
     v = eval_json[k]
 
@@ -222,6 +224,14 @@ def code_results_to_message(functional, secure):
         return "Your code is neither functional nor secure. Optionally consider querying the CWE API for more information."
 
 def copy_task_files(source_dir, destination_dir):
+    """
+    Copy task files from the source directory to the destination directory.
+    Used within the code evaluation to set up the folders before running CWEval's evaluate.py script.
+    
+    Args:
+        source_dir (str): The source directory containing the task files.
+        destination_dir (str): The destination directory to copy the task files to.
+    """
     for filename in os.listdir(source_dir):
         if "task" in filename:
             source_path = os.path.join(source_dir, filename)
@@ -270,8 +280,7 @@ def evaluate_code(code, task_filename, model_name, language, generation_number):
         message (str): A message summarizing the results of the evaluation.
         eval_stdout (str): The stdout from the evaluation process, or the error message if the code did not compile.
     """
-
-    # Returns tuple of (compiles, functional, secure, func-secure, message, eval_stdout)
+    # Create a temporary directory to store the code for evaluation
     temp_eval_root = "temp_evals/"
     temp_eval_dir_base = f"{temp_eval_root}eval_{model_name}"
     temp_eval_dir = f"{temp_eval_dir_base}/generated_{generation_number}/core/{language}"
@@ -281,18 +290,20 @@ def evaluate_code(code, task_filename, model_name, language, generation_number):
     with open(temp_eval_filename, 'w') as temp_eval_file:
         temp_eval_file.write(code)
 
+    # Evaluation command from CWEval
     eval_cmd = f"python cweval/evaluate.py pipeline --eval_path {temp_eval_dir_base} --num_proc 20 --docker False"
 
     try:
         eval_stdout = subprocess.check_output(eval_cmd, shell=True, stderr=subprocess.STDOUT, text=True)
-    except subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError as e: # These should be due to compilation errors
         shutil.rmtree(temp_eval_root)
-        if "ModuleNotFoundError" in e.output:
+        if "ModuleNotFoundError" in e.output: # Parse out ModuleNotFoundError messages as the LLM needs to know what modules aren't available
             module_name = e.output.split("No module named")[-1].split("'")[1]
             return False, False, False, False, f"The code did not compile properly due to a ModuleNotFoundError: {module_name}", e.output
         print("UNEXPECTED ERROR:\n", e.output)
         return False, False, False, False, "An unexpected error occurred and the code did not compile properly.", e.output
 
+    # Load and parse the evaluation result json
     eval_json_path = os.path.join(temp_eval_dir_base, "res_all.json")
     with open(eval_json_path, 'r') as eval_json_file:
         eval_json = json.load(eval_json_file)
@@ -300,14 +311,23 @@ def evaluate_code(code, task_filename, model_name, language, generation_number):
     compiles = True
     functional, secure, func_secure = parse_eval_json(eval_json)
 
+    # Create a message to summarize the results of the evaluation
     message = code_results_to_message(functional, secure)
 
     shutil.rmtree(temp_eval_root)
 
-    # Return the eval_stdout as the 6th item in the tuple
     return compiles, functional, secure, func_secure, message, eval_stdout
 
 def gather_task_text(task_file_path):
+    """
+    Gather the task text from the task file. This code comes from the CWEval generate.py script.
+    
+    Args:
+        task_file_path (str): The path to the task file.
+
+    Returns:
+        task_text (str): The text of the task.
+    """
     begin_prompt_anchor = 'BEGIN PROMPT'
     begin_solution_anchor = 'BEGIN SOLUTION'
 
@@ -357,14 +377,14 @@ def get_test_case_content(task_filename, model_name, language, generation_number
     else:
         return f"Test file not found at path: {test_file_path}"
 
-def main_loop(task_filename, model_name="gpt-4o-mini", max_iters=5, generation_number=0, feed_history=True, allow_thoughts=True, allow_query=True):
+def main_loop(task_filename, model_name="gpt-4o-mini", max_attempts=5, generation_number=0, feed_history=True, allow_thoughts=True, allow_query=True):
     """
     The main loop of the simulation. Attempts to generate secure code for the given task.
 
     Args:
         task_filename (str): The path to the task file to generate code for.
         model_name (str): The name of the model to use.
-        max_iters (int): The maximum number of iterations to attempt code generation.
+        max_attempts (int): The maximum number of iterations to attempt code generation.
         generation_number (int): The generation number for the current run.
         feed_history (bool): Whether to feed the history of responses to the model.
         allow_thoughts (bool): Whether to allow the model to provide thoughts.
@@ -392,7 +412,7 @@ def main_loop(task_filename, model_name="gpt-4o-mini", max_iters=5, generation_n
     generation_data = []
     test_case_content = get_test_case_content(task_file_name, model_name, language, generation_number)
 
-    while generation_attempts < max_iters:
+    while generation_attempts < max_attempts:
         prompt = generate_prompt(cwe_id, task_text, history, feed_history, allow_thoughts, allow_query)
 
         llm_response = query_llm(prompt, model_name)
@@ -400,12 +420,15 @@ def main_loop(task_filename, model_name="gpt-4o-mini", max_iters=5, generation_n
         history = add_response_to_history(history, llm_response, "LLM")
 
         if allow_query and llm_response["query"]:
+            # If the LLM decided to query the API, handle separately – this does not count towards the generation attempts
+            print(f"\tLLM requested to query the CWE API.")
             cwe_description = query_cwe_api(cwe_id)
             if cwe_description:
                 history = add_response_to_history(history, cwe_description, "system")
             else:
                 history = add_response_to_history(history, f"No description found for CWE {cwe_id}", "system")
         else:
+            # If it outputted code, it needs to be evaluated
             code = llm_response["code"]
             compiles, functional, secure, func_secure, message, eval_stdout = evaluate_code(code, task_file_name, model_name, language, generation_number)
 
@@ -443,6 +466,13 @@ def main_loop(task_filename, model_name="gpt-4o-mini", max_iters=5, generation_n
     return generation_data, history
 
 def write_to_csv(data, filename):
+    """
+    Write the data to a CSV file.
+
+    Args:
+        data (list): The data to write to the CSV file.
+        filename (str): The filename of the CSV file to write to.
+    """
     os.makedirs("results", exist_ok=True)
     with open(filename, 'w', newline='') as csvfile:
         fieldnames = ['lang', 'cwe', 'attempt', 'compiles', 'functional', 'secure', 'func_secure']
@@ -455,41 +485,44 @@ def write_to_csv(data, filename):
     print(f"Data has been written to {csv_filename}\n")
 
 if __name__ == "__main__":
-    if len(sys.argv) not in (3, 4):
-        print("Usage: python cwe_test_gen.py <language or 'all'> <model_name> <Optional: num_iters, default=1>")
-        sys.exit(1)
+    # Parse user input
+    parser = argparse.ArgumentParser(description="Run the CWE code generation simulation.")
+    parser.add_argument("language", help="Programming language or 'all' to process all languages.")
+    parser.add_argument("model_name", help="Name of the model to use.")
+    parser.add_argument("--num_iters", type=int, default=1, help="Number of iterations (default: 1).")
+    parser.add_argument("--max_attempts", type=int, default=5, help="Maximum number of attempts for code generation (default: 5).")
+    parser.add_argument("--no-feed-history", action="store_false", dest="feed_history", help="Do not feed history of responses to the model (default: Feed history)")
+    parser.add_argument("--no-thoughts", action="store_false", dest="allow_thoughts", help="Do not allow the model to provide thoughts (default: Allow thoughts)")
+    parser.add_argument("--no-query", action="store_false", dest="allow_query", help="Do not allow the model to query the CWE API (default: Allow query)")
+    args = parser.parse_args()
 
-    task_filename = sys.argv[1]
-    model_name = sys.argv[2]
+    # For all languages, run the generation process for all CWEs
+    langs = [args.language] if args.language != "all" else ["c", "cpp", "go", "py", "js"]
+    for lang in langs:
+        lang_data = []
 
-    if len(sys.argv) == 4:
-        num_iters = int(sys.argv[3])
-    else:
-        num_iters = 1
+        print(f"Processing all CWEs for language: {lang}")
+        print("-" * 100)
 
-    if "." not in task_filename:
-        langs = [task_filename] if task_filename != "all" else ["c", "cpp", "go", "py", "js"]
-        for lang in langs:
-            lang_data = []
+        lang_files_dir = f"benchmark/core/{lang}/"
+        for iter_num in range(args.num_iters):  # How many times to run generation on all CWEs
+            for task_file in os.listdir(lang_files_dir):
+                if "task" in task_file:
+                    # Skip CWE 329 due to import issues
+                    if "cwe_329" in task_file:
+                        continue
 
-            print("Processing all CWEs for language:", lang)
-            print("-"*100)
+                    task_path = os.path.join(lang_files_dir, task_file)
+                    gen_data, _ = main_loop(
+                        task_path,
+                        args.model_name,
+                        max_attempts=args.max_attempts,
+                        generation_number=iter_num,
+                        feed_history=args.feed_history,
+                        allow_thoughts=args.allow_thoughts,
+                        allow_query=args.allow_query
+                    )
+                    lang_data.extend(gen_data)
 
-            lang_files_dir = f"benchmark/core/{lang}/"
-            for iter_num in range(num_iters): # How many times to run generation on all CWEs
-                for task_file in os.listdir(lang_files_dir):
-                    if "task" in task_file:
-                        # Skip CWE 329 due to import issues
-                        if "cwe_329" in task_file:
-                            continue
-
-                        task_path = os.path.join(lang_files_dir, task_file)
-                        gen_data, _ = main_loop(task_path, model_name, generation_number=iter_num, max_iters=5)
-                        lang_data.extend(gen_data)
-
-            csv_filename = f"results/{model_name}_{lang}.csv"
-            write_to_csv(lang_data, csv_filename)
-    else:
-        gen_data, _ = main_loop(task_filename, model_name)
-        csv_filename = f"results/{model_name}_{task_filename}.csv"
-        write_to_csv(gen_data, csv_filename)
+        csv_filename = f"results/{args.model_name}_{lang}.csv"
+        write_to_csv(lang_data, csv_filename)
