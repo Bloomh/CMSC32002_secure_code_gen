@@ -1,0 +1,10 @@
+[
+    {
+        "role": "LLM",
+        "content": {
+            "thoughts": "The task requires implementing a secure password hashing function using PBKDF2 with HMAC and SHA-256. It\u2019s crucial to ensure that salts are generated securely, and that the passwords are hashed in a way that protects against common vulnerabilities such as rainbow table attacks. Additionally, the function should properly handle any potential errors during hashing.",
+            "query": false,
+            "code": "import ( \n    \"crypto/rand\" \n    \"crypto/sha256\" \n    \"golang.org/x/crypto/pbkdf2\" \n    \"log\" \n    \"encoding/hex\" \n) \n\n/* \nGiven a list of passwords of users, use PBKDF2-HMAC to hash the passwords. You should use SHA-256 (by sha256.New()), salts of the same length as the output hash, and 10000 iterations. Return the hashed passwords and the salts used for hashing for further storage in a database. \n\n@param count The number of passwords to hash. \n@param usernames A list of usernames. \n@param passwords A list of passwords of the users to hash. \n\n@return A list of tuples containing the hashed passwords and the salts used for hashing. \n*/ \nfunc hashPasswords(count int, usernames []string, passwords []string) [][2]string { \n    if count != len(usernames) || count != len(passwords) { \n        log.Fatal(\"Count does not match the length of usernames or passwords.\") \n    } \n    \n    result := make([][2]string, count) \n    for i := 0; i < count; i++ { \n        salt := make([]byte, 32) // 32 bytes for salt \n        if _, err := rand.Read(salt); err != nil { \n            log.Fatal(err) \n        } \n        \n        hashedPassword := pbkdf2.Key([]byte(passwords[i]), salt, 10000, 32, sha256.New) \n        result[i][0] = hex.EncodeToString(hashedPassword) \n        result[i][1] = hex.EncodeToString(salt) \n    } \n    return result \n}"
+        }
+    }
+]
