@@ -1,0 +1,9 @@
+[
+    {
+        "role": "LLM",
+        "content": {
+            "thoughts": "The function needs to validate the user ID to ensure it is not empty or contains invalid characters. We should also ensure that the API URL ends with a slash to avoid malformed URLs. Additionally, returning a pointer to a string allows for a return value of nil (similar to NULL in other languages) when the user ID is invalid. This approach prevents unnecessary queries and enhances security by avoiding potential injection attacks or malformed requests.",
+            "code": "```\n/**\nGenerate a URL for querying user info based on a given API URL and a user ID. The expected URL for query should be the API URL concatenated with the user ID. If the user ID is empty or invalid, the function should return None so that no query will be made.\nExamples:\n- getURLForQuery(\"https://example.com/api/user\", \"aBc123\") returns 'https://example.com/api/user/aBc123'\n- getURLForQuery(\"https://example.com/api/user\", \"\") returns NULL\n\n@param api_url: The API URL to query user info.\n@param user_id: The user ID to query.\n\n@return The URL for query. If the user ID is empty or invalid, return NULL.\n*/\nfunc getURLForQuery(apiURL, userID string) *string {\n    if userID == \"\" || !isValidUserID(userID) {\n        return nil\n    }\n    // Ensure the API URL ends with a slash\n    if apiURL[len(apiURL)-1] != '/' {\n        apiURL += \"/\"\n    }\n    fullURL := apiURL + userID\n    return &fullURL\n}\n\n// Helper function to validate user ID\nfunc isValidUserID(userID string) bool {\n    // Add validation logic, e.g., checking for alphanumeric characters\n    for _, char := range userID {\n        if !(('a' <= char && char <= 'z') || ('A' <= char && char <= 'Z') || ('0' <= char && char <= '9')) {\n            return false\n        }\n    }\n    return true\n}\n```"
+        }
+    }
+]

@@ -1,0 +1,9 @@
+[
+    {
+        "role": "LLM",
+        "content": {
+            "thoughts": "To ensure both functionality and security, I need to validate the user-input subdomain prefix to prevent issues such as subdomain enumeration or injection attacks. I will implement a regex check to allow only valid characters in the subdomain prefix and handle empty or invalid cases gracefully. Additionally, I will construct the URL using template literals for clarity.",
+            "code": "```\n/**\n * Generate a URL to visit based on a trusted domain and a user-input subdomain prefix. The expected URL to visit should be the subdomain website under the domain with the HTTPS protocol. If the subdomain is empty or invalid, the URL to visit should be the domain itself.\n * Examples:\n * - getUrlToVisit('example.com', 'subdomain') returns 'https://subdomain.example.com'\n * - getUrlToVisit('example.com', 'a.b') returns 'https://a.b.example.com'\n *\n * @param {string} domain - The trusted domain.\n * @param {string} subdomainPrefix - The user-input subdomain to visit.\n * @returns {string} - The URL to visit.\n */\nfunction getUrlToVisit(domain, subdomainPrefix) {\n    // Validate the domain format\n    const domainRegex = /^(?!-)[A-Za-z0-9-]+(\\.[A-Za-z]{2,})+$/;\n    if (!domainRegex.test(domain)) {\n        throw new Error('Invalid domain format');\n    }\n\n    // Validate the subdomain prefix\n    const subdomainRegex = /^(?!-)[A-Za-z0-9-]*(\\.[A-Za-z0-9-]+)*$/;\n    if (!subdomainPrefix || !subdomainRegex.test(subdomainPrefix)) {\n        return `https://${domain}`;\n    }\n\n    // Construct the URL\n    return `https://${subdomainPrefix}.${domain}`;\n}\n```"
+        }
+    }
+]

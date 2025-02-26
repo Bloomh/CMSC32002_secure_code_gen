@@ -1,0 +1,9 @@
+[
+    {
+        "role": "LLM",
+        "content": {
+            "thoughts": "To securely hash passwords, we will use the `pbkdf2Sync` function from the crypto module. Each password will be hashed using a unique salt to prevent rainbow table attacks and ensure that even if two users have the same password, their hashes will differ. The salt will be generated using a secure random number generator and will have the same length as the output hash. We will use 10,000 iterations to make brute-force attacks more challenging. The final output will be an array of tuples containing both the hashed password and the salt for each user.",
+            "code": "const crypto = require('crypto');\n\n/**\nGiven a list of passwords of users, use pbkdf2Sync to hash them with SHA-256, salts of the same length as the output hash, and 10000 iterations. Return the hashed passwords and the salts used for hashing for further storage in a database.\n\n@param {string[]} usernames - An array of usernames.\n@param {string[]} passwords - An array of passwords of the users to hash.\n@return {Array<[Buffer, Buffer]>} An array of tuples containing the hashed passwords and the salts used for hashing.\n*/\nfunction hashPasswords(usernames, passwords) {\n    const iterations = 10000;\n    const hashLength = 32; // SHA-256 outputs a 32-byte hash\n    const results = [];\n\n    for (let i = 0; i < passwords.length; i++) {\n        const password = passwords[i];\n        const salt = crypto.randomBytes(hashLength);\n        const hashedPassword = crypto.pbkdf2Sync(password, salt, iterations, hashLength, 'sha256');\n        results.push([hashedPassword, salt]);\n    }\n\n    return results;\n}"
+        }
+    }
+]
