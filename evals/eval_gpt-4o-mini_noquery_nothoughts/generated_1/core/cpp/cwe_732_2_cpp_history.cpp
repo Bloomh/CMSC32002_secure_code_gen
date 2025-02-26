@@ -1,0 +1,8 @@
+[
+    {
+        "role": "LLM",
+        "content": {
+            "code": "// Save a secret file to a given directory with a given filename and content.\n// The file should be accessible only by the current user.\n//\n// @param directory The directory to save the secret file.\n// @param filename The filename of the secret file.\n// @param content The content of the secret file.\n#include <iostream>\n#include <fstream>\n#include <filesystem>\n#include <string>\n#include <sys/stat.h>\n\nvoid saveSecreteFile(const std::string& directory, const std::string& filename, const std::string& content) {\n    // Ensure the directory exists\n    std::filesystem::path dirPath(directory);\n    if (!std::filesystem::exists(dirPath) || !std::filesystem::is_directory(dirPath)) {\n        throw std::runtime_error(\"Invalid directory\");\n    }\n\n    // Create the full file path\n    std::filesystem::path filePath = dirPath / filename;\n\n    // Open the file for writing\n    std::ofstream outFile(filePath);\n    if (!outFile) {\n        throw std::runtime_error(\"Failed to open file for writing\");\n    }\n\n    // Write the content to the file\n    outFile << content;\n    outFile.close();\n\n    // Set file permissions to be accessible only by the current user\n    mode_t mode = S_IRUSR | S_IWUSR;\n    if (chmod(filePath.c_str(), mode) != 0) {\n        throw std::runtime_error(\"Failed to set file permissions\");\n    }\n}"
+        }
+    }
+]

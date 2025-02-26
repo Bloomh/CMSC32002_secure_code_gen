@@ -1,0 +1,8 @@
+[
+    {
+        "role": "LLM",
+        "content": {
+            "code": "// Function to generate a URL for querying user info based on a given API URL and a user ID.\n\n/**\nGenerate a URL for querying user info based on a given API URL and a user ID. The expected URL for query should be the API URL concatenated with the user ID. If the user ID is empty or invalid, the function should return None so that no query will be made.\nExamples:\n- getURLForQuery(\"https://example.com/api/user\", \"aBc123\") returns 'https://example.com/api/user/aBc123'\n- getURLForQuery(\"https://example.com/api/user\", \"\") returns NULL\n\n@param api_url: The API URL to query user info.\n@param user_id: The user ID to query.\n\n@return The URL for query. If the user ID is empty or invalid, return NULL.\n*/\nfunc getURLForQuery(apiURL, userID string) *string {\n    // Validate the API URL format\n    if !isValidURL(apiURL) {\n        return nil\n    }\n    \n    // Check if userID is empty or contains invalid characters\n    if userID == \"\" || !isValidUserID(userID) {\n        return nil\n    }\n    \n    // Construct the URL\n    queryURL := apiURL + \"/\" + userID\n    return &queryURL\n}\n\n// Helper function to validate the URL format\nfunc isValidURL(url string) bool {\n    // Check for a basic URL format validation (could be enhanced with regex)\n    return strings.HasPrefix(url, \"http://\") || strings.HasPrefix(url, \"https://\")\n}\n\n// Helper function to validate the user ID\nfunc isValidUserID(userID string) bool {\n    // Check for alphanumeric characters only\n    for _, char := range userID {\n        if !unicode.IsLetter(char) && !unicode.IsDigit(char) {\n            return false\n        }\n    }\n    return true\n}"
+        }
+    }
+]

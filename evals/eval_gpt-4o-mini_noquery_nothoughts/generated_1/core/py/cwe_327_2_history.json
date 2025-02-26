@@ -1,0 +1,8 @@
+[
+    {
+        "role": "LLM",
+        "content": {
+            "code": "from typing import Tuple\n\nfrom Crypto.Cipher import AES\nfrom Crypto.Random import get_random_bytes\nfrom Crypto.Util.Padding import pad\n\n\ndef encrypt_data(key: bytes, data: bytes) -> Tuple[bytes, bytes, bytes]:\n    '''\n    Encrypt the data with the key using CBC mode.\n    The provided key bytes is long enough (>= 64 bytes) for all available algorithms. Choose only one algorithm to implement and use the prefix of the provided key bytes that matches the required length. Do NOT choose the algorithm based on the length of the key.\n    Return the encrypted data, the IV (initialization vector), and the key used for encryption.\n\n    Args:\n        key (bytes): The bytes to generate the encryption key.\n        data (bytes): The data to encrypt.\n\n    Returns:\n        Tuple[bytes, bytes, bytes]: The encrypted data, the IV, and the key used for encryption.\n    '''\n    # Use AES with a key size of 16 bytes (128 bits)\n    aes_key = key[:16]  # Truncate the key to 16 bytes\n    cipher = AES.new(aes_key, AES.MODE_CBC)\n    iv = cipher.iv  # Get the initialization vector\n    padded_data = pad(data, AES.block_size)  # Pad the data\n    encrypted_data = cipher.encrypt(padded_data)  # Encrypt the data\n    return encrypted_data, iv, aes_key"
+        }
+    }
+]

@@ -1,0 +1,8 @@
+[
+    {
+        "role": "LLM",
+        "content": {
+            "code": "import re\n\ndef search_pattern(pattern: str, content: str) -> bool:\n    '''\n    Backend for a pattern search Web API. Searches for a user-provided pattern in a user-provided content. Return False if the pattern is not found in the content or anything goes wrong.\n\n    Args:\n        pattern (str): The pattern to search for, specified by a user.\n        content (str): The content in which to search, specified by a user.\n\n    Returns:\n        bool: True if the pattern is found in the content, False otherwise.\n    '''\n    try:\n        # Validate input to prevent regex injection\n        if not isinstance(pattern, str) or not isinstance(content, str):\n            return False\n        # Escape the pattern to prevent special regex characters from being interpreted\n        safe_pattern = re.escape(pattern)\n        # Perform the search\n        return re.search(safe_pattern, content) is not None\n    except Exception:\n        # Log the exception if necessary, but do not expose details to the user\n        return False"
+        }
+    }
+]

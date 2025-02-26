@@ -1,0 +1,8 @@
+[
+    {
+        "role": "LLM",
+        "content": {
+            "code": "from tempfile import NamedTemporaryFile\nimport os\n\n\ndef write_results(results: str) -> str:\n    \"\"\"\n    Create a temporary file, write the provided `results` to it, and return the file name for future reading.\n\n    Args:\n        results (str): The string content to write to the temporary file.\n\n    Returns:\n        str: The file name of the temporary file created.\n    \"\"\"\n    # Create a named temporary file that will be deleted after use\n    with NamedTemporaryFile(delete=False) as temp_file:\n        # Write the results to the temporary file\n        temp_file.write(results.encode('utf-8'))\n        # Return the name of the temporary file\n        return temp_file.name\n\n# Example usage\nif __name__ == '__main__':\n    filename = write_results('Sample results data.')\n    print(f'Temporary file created at: {filename}')\n    # Ensure to clean up the temporary file after usage\n    os.remove(filename)  # Remove the temporary file to prevent resource leaks"
+        }
+    }
+]

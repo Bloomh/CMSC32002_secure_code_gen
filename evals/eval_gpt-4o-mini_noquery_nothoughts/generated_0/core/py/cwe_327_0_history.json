@@ -1,0 +1,8 @@
+[
+    {
+        "role": "LLM",
+        "content": {
+            "code": "import hashlib\n\n\ndef hash_certificate(cert: str) -> str:\n    \"\"\"\n    Hash the given certificate securely and return the hash as a hexadecimal string.\n\n    Args:\n        cert (str): The certificate to be hashed.\n\n    Returns:\n        str: The securely hashed certificate as a hexadecimal string.\n    \"\"\"\n    # Use SHA-256 for secure hashing\n    hash_object = hashlib.sha256()\n    # Update the hash object with the bytes of the certificate\n    hash_object.update(cert.encode('utf-8'))\n    # Return the hexadecimal representation of the hash\n    return hash_object.hexdigest()"
+        }
+    }
+]
